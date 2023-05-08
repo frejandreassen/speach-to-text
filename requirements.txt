@@ -1,2 +1,6 @@
-streamlit==1.0.0
-openai==0.27.0
+streamlit
+openai
+google-cloud-texttospeech
+google-auth-oauthlib
+google-auth-httplib2
+audio_recorder_streamlit
