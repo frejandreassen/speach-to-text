@@ -19,6 +19,34 @@ credentials = service_account.Credentials.from_service_account_info(
 # Initialize the Text-to-Speech client with the credentials object
 client = texttospeech.TextToSpeechClient(credentials=credentials)
 
+def transcribe_audio(audio_data):
+    if isinstance(audio_data, bytes):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+            f.write(audio_data)
+            f.seek(0)
+            transcript = openai.Audio.transcribe("whisper-1", f)
+    else:
+        transcript = openai.Audio.transcribe("whisper-1", audio_data)
+
+    return transcript['text']
+
+def translate_text(prompt, target_language):
+    message = {
+        'role': 'system',
+        'content': f"Translate the following text to {target_language}: {prompt}"
+    }
+
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+
+    st.session_state.messages.append(message)
+
+    completions = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=st.session_state.messages
+    )
+    return completions.choices[0].message.content.strip()
+
 def synthesize_speech(text, language_code='en-US', voice_name='en-US-Wavenet-A'):
     input_text = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
@@ -35,9 +63,11 @@ def synthesize_speech(text, language_code='en-US', voice_name='en-US-Wavenet-A')
         audio_config=audio_config
     )
 
+    return response
+
     # Save the synthesized speech to a file
-    with open("output.mp3", "wb") as out:
-        out.write(response.audio_content)
+    #with open("output.mp3", "wb") as out:
+    #    out.write(response.audio_content)
 
 
 
@@ -47,7 +77,7 @@ st.subheader("Upload an audio file or record audio in the browser")
 language_options = {
     "Swedish": ("swedish", "sv-SE"),
     "Arabic": ("arabic", "ar-XA"),
-    "Chinese": ("chinese", "zh-CN"),
+    "Chinese": ("chinese", "cmn-CN"),
     "Czech": ("czech", "cs-CZ"),
     "Danish": ("danish", "da-DK"),
     "Dutch": ("dutch", "nl-NL"),
@@ -88,48 +118,21 @@ audio_bytes = audio_recorder()
 if audio_bytes:
     st.audio(audio_bytes, format="audio/wav")
 
-def transcribe_audio(audio_data):
-    if isinstance(audio_data, bytes):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-            f.write(audio_data)
-            f.seek(0)
-            transcript = openai.Audio.transcribe("whisper-1", f)
-    else:
-        transcript = openai.Audio.transcribe("whisper-1", audio_data)
-
-    return transcript['text']
-
-def translate_text(prompt, target_language):
-    message = {
-        'role': 'system',
-        'content': f"Translate the following text to {target_language}: {prompt}"
-    }
-
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-
-    st.session_state.messages.append(message)
-
-    completions = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=st.session_state.messages
-    )
-    return completions.choices[0].message.content.strip()
-
 if uploaded_file is not None or audio_bytes is not None:
     # Use uploaded_file or audio_bytes as input, depending on which is available
     audio_input = uploaded_file if uploaded_file is not None else audio_bytes
     st.write("Transcribing audio...")
     text = transcribe_audio(audio_input)
     st.write("Transcription:")
-    st.text(text)
+    st.write(text)
     st.write("Translating...")
     translated_text = translate_text(text, selected_language)
     st.write("Translation:")
-    st.text(translated_text)    
+    st.write(translated_text)    
     st.write("Synthesizing speech")
-    synthesize_speech(translated_text, selected_language_code, voice_name)
-    st.write(f"Speech synthesized in {selected_language} and saved as output.mp3")
-    st.audio("output.mp3", format="audio/mp3")
-
+    response = synthesize_speech(translated_text, selected_language_code, voice_name)
+    st.write(f"Speech synthesized in {selected_language}")
+    # st.audio("output.mp3", format="audio/mp3")
+    if response.audio_content:
+        st.audio(response.audio_content, format="audio/mp3")
 
