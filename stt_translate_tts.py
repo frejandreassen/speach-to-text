@@ -119,7 +119,7 @@ voice_name = f"{selected_language_code}-Standard-A"
 
 uploaded_file = st.file_uploader("Choose an audio file", type=["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"])
 
-audio_bytes = audio_recorder()
+audio_bytes = audio_recorder(pause_threshold=4.0, neutral_color="#888888")
 if audio_bytes:
     st.audio(audio_bytes, format="audio/wav")
 
