@@ -33,7 +33,7 @@ def transcribe_audio(audio_data):
 def translate_text(prompt, target_language):
     message = {
         'role': 'system',
-        'content': f"Translate the following text to {target_language}: {prompt}"
+        'content': f"Translate the following text to {target_language}: {prompt}. Only reply with your best translation, no other information."
     }
 
     if 'messages' not in st.session_state:
@@ -64,15 +64,6 @@ def synthesize_speech(text, language_code='en-US', voice_name='en-US-Wavenet-A')
     )
 
     return response
-
-    # Save the synthesized speech to a file
-    #with open("output.mp3", "wb") as out:
-    #    out.write(response.audio_content)
-
-
-
-st.title("Speech to Text, Translation, and Text-to-Speech with OpenAI and Google Text-to-Speech")
-st.subheader("Upload an audio file or record audio in the browser")
 
 language_options = {
     "Swedish": ("swedish", "sv-SE"),
@@ -107,6 +98,11 @@ language_options = {
     "Vietnamese": ("vietnamese", "vi-VN"),
 }
 
+
+## Streamlit app
+st.title("Speech to Text, Translation, and Text-to-Speech with OpenAI and Google Text-to-Speech")
+st.subheader("Upload an audio file or record audio in the browser")
+
 selected_language = st.selectbox("Select the target language for translation", options=list(language_options.keys()))
 selected_language_code = language_options[selected_language][1]
 voice_name = f"{selected_language_code}-Standard-A"
@@ -132,7 +128,10 @@ if uploaded_file is not None or audio_bytes is not None:
     st.write("Synthesizing speech")
     response = synthesize_speech(translated_text, selected_language_code, voice_name)
     st.write(f"Speech synthesized in {selected_language}")
-    # st.audio("output.mp3", format="audio/mp3")
     if response.audio_content:
-        st.audio(response.audio_content, format="audio/mp3")
-
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+            f.write(response.audio_content)
+            f.seek(0)
+            audio_file = open(f.name, "rb")
+            audio_bytes = audio_file.read()
+            st.audio(audio_bytes, format="audio/mpeg")
