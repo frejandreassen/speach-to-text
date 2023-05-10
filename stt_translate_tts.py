@@ -33,7 +33,7 @@ def transcribe_audio(audio_data):
 def translate_text(prompt, target_language):
     message = {
         'role': 'system',
-        'content': f"Translate the following text to {target_language}: {prompt}. Only reply with your best translation, no other information."
+        'content': f"Translate the following text to {target_language}. Only translation, no excuses. Text: {prompt}."
     }
 
     if 'messages' not in st.session_state:
